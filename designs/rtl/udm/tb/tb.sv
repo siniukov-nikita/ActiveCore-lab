@@ -78,6 +78,9 @@ udm_driver udm = new();
 // main test procedure //
 localparam CSR_LED_ADDR         = 32'h00000000;
 localparam CSR_SW_ADDR          = 32'h00000004;
+localparam DIVIDER_ARG_ADDR     = 32'h00000010;
+localparam DIVIDER_QUOT_ADDR    = 32'h00000014;
+localparam DIVIDER_REM_ADDR     = 32'h00000018;
 localparam TESTMEM_ADDR         = 32'h80000000;
 
 initial
@@ -121,7 +124,18 @@ initial
 	
 	// reading SW
 	udm.rd32(32'h00000004);
-	
+
+	// combinational divider smoke test through the UDM bus
+	udm.wr32(DIVIDER_ARG_ADDR, 16'd65535);
+	udm.rd32_expect(DIVIDER_QUOT_ADDR, 32'd3855);
+	udm.rd32_expect(DIVIDER_REM_ADDR, 32'd0);
+
+	// switch to variant 10 and test atan2(1, 1) against the Python model
+	udm.wr32(VARIANT_SEL_ADDR, 32'd1);
+	udm.wr32(DIVIDER_ARG_ADDR, 32'd1);  // y
+	udm.wr32(DIVIDER_QUOT_ADDR, 32'd1); // x
+	udm.rd32_expect(DIVIDER_REM_ADDR, 32'd438082046);
+
 	WAIT(1000);
 
 	$display ("### TEST PROCEDURE FINISHED ###");

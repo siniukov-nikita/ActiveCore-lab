@@ -88,6 +88,13 @@ udm
 
 localparam CSR_LED_ADDR         = 32'h00000000;
 localparam CSR_SW_ADDR          = 32'h00000004;
+localparam VARIANT_SEL_ADDR     = 32'h00000008;
+localparam DIVIDER_ARG_ADDR     = 32'h00000010;
+localparam DIVIDER_QUOT_ADDR    = 32'h00000014;
+localparam DIVIDER_REM_ADDR     = 32'h00000018;
+localparam ATAN2_Y_ADDR         = 32'h00000020;
+localparam ATAN2_X_ADDR         = 32'h00000024;
+localparam ATAN2_ANGLE_ADDR     = 32'h00000028;
 localparam TESTMEM_ADDR         = 32'h80000000;
 
 localparam TESTMEM_WSIZE_POW    = 10;
@@ -130,6 +137,25 @@ ram_dual #(
 assign udm_bus.ack = udm_bus.req;   // bus always ready to accept request
 logic udm_csr_resp, udm_testmem_resp;
 logic [31:0] udm_csr_rdata;
+logic [15:0] divider_arg;
+wire [31:0] divider_quotient;
+wire [31:0] divider_remainder;
+logic variant_sel;
+logic signed [31:0] atan2_y;
+logic signed [31:0] atan2_x;
+wire signed [31:0] atan2_angle;
+
+const_divider divider (
+    .dividend_i(divider_arg),
+    .quotient_o(divider_quotient),
+    .remainder_o(divider_remainder)
+);
+
+atan2_cordic atan2 (
+    .y_i(atan2_y),
+    .x_i(atan2_x),
+    .angle_o(atan2_angle)
+);
 
 // bus request
 always @(posedge clk_gen)
@@ -140,6 +166,10 @@ always @(posedge clk_gen)
     if (srst)
         begin
         LED <= 16'hffff;
+        variant_sel <= 1'b0;
+        divider_arg <= 16'd0;
+        atan2_y <= 32'sd0;
+        atan2_x <= 32'sd0;
         end
     
     else
@@ -151,6 +181,18 @@ always @(posedge clk_gen)
             if (udm_bus.we)     // writing
                 begin
                 if (udm_bus.addr == CSR_LED_ADDR) LED <= udm_bus.wdata;
+                if (udm_bus.addr == VARIANT_SEL_ADDR) variant_sel <= udm_bus.wdata[0];
+                if (udm_bus.addr == DIVIDER_ARG_ADDR)
+                    begin
+                    if (!variant_sel)
+                        divider_arg <= udm_bus.wdata[15:0];
+                    else
+                        atan2_y <= udm_bus.wdata;
+                    end
+                if ((udm_bus.addr == DIVIDER_QUOT_ADDR) && variant_sel)
+                    atan2_x <= udm_bus.wdata;
+                if (udm_bus.addr == ATAN2_Y_ADDR) atan2_y <= udm_bus.wdata;
+                if (udm_bus.addr == ATAN2_X_ADDR) atan2_x <= udm_bus.wdata;
                 end
             
             else                // reading
@@ -165,12 +207,57 @@ always @(posedge clk_gen)
                     udm_csr_resp <= 1'b1;
                     udm_csr_rdata <= SW;
                     end
+                if (udm_bus.addr == VARIANT_SEL_ADDR)
+                    begin
+                    udm_csr_resp <= 1'b1;
+                    udm_csr_rdata <= {31'd0, variant_sel};
+                    end
+                if (udm_bus.addr == DIVIDER_ARG_ADDR)
+                    begin
+                    udm_csr_resp <= 1'b1;
+                    if (!variant_sel)
+                        udm_csr_rdata <= {16'd0, divider_arg};
+                    else
+                        udm_csr_rdata <= atan2_y;
+                    end
+                if (udm_bus.addr == DIVIDER_QUOT_ADDR)
+                    begin
+                    udm_csr_resp <= 1'b1;
+                    if (!variant_sel)
+                        udm_csr_rdata <= divider_quotient;
+                    else
+                        udm_csr_rdata <= atan2_x;
+                    end
+                if (udm_bus.addr == DIVIDER_REM_ADDR)
+                    begin
+                    udm_csr_resp <= 1'b1;
+                    if (!variant_sel)
+                        udm_csr_rdata <= divider_remainder;
+                    else
+                        udm_csr_rdata <= atan2_angle;
+                    end
+                if (udm_bus.addr == ATAN2_Y_ADDR)
+                    begin
+                    udm_csr_resp <= 1'b1;
+                    udm_csr_rdata <= atan2_y;
+                    end
+                if (udm_bus.addr == ATAN2_X_ADDR)
+                    begin
+                    udm_csr_resp <= 1'b1;
+                    udm_csr_rdata <= atan2_x;
+                    end
+                if (udm_bus.addr == ATAN2_ANGLE_ADDR)
+                    begin
+                    udm_csr_resp <= 1'b1;
+                    udm_csr_rdata <= atan2_angle;
+                    end
                 udm_testmem_resp <= udm_testmem_enb;
                 end
             end
         
         end
-    end
+
+        end
 
 // bus response
 assign udm_bus.resp = udm_csr_resp | udm_testmem_resp;
