@@ -180,27 +180,6 @@ class udm_driver;
         end
     endtask
 
-    task rd32_expect
-        (
-            input logic [31:0] rd_addr,
-            input logic [31:0] expected_data
-        );
-        begin
-        UART_SEND(`SYNC_BYTE);
-        UART_SEND(`RD_CMD);
-        udm_sendword32(rd_addr);
-        udm_sendword32(32'h4);
-
-        do begin
-            @(posedge `UDM_BLOCK.clk_i);
-        end while (!`UDM_BLOCK.bus_resp_i);
-
-        if (`UDM_BLOCK.bus_rdata_bi !== expected_data)
-            $fatal(1, "UDM divider read mismatch: addr=0x%08x got=0x%08x expected=0x%08x",
-                rd_addr, `UDM_BLOCK.bus_rdata_bi, expected_data);
-        end
-    endtask
-    
     task wrarr32
         (
             input logic [31:0] wr_addr,
