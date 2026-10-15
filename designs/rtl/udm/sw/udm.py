@@ -14,6 +14,7 @@ import struct
 import serial
 import os
 import random
+import time
 
 class udm:
     
@@ -44,7 +45,7 @@ class udm:
             baudrate (int): baudrate
 
         """
-        self.ser = serial.Serial(com_num, baudrate, 8, timeout=2)
+        self.ser = serial.Serial(com_num, baudrate, 8, timeout=5)
     
     def con(self, com_num, baudrate):
         """Description:
@@ -104,21 +105,28 @@ class udm:
             Check UDM response
 
         """
-        self.ser.reset_input_buffer()
-        self.ser.reset_output_buffer()
-        wdata = (struct.pack('B', self.__sync_byte))
-        wdata = wdata + (struct.pack('B', self.__idcode_cmd))
-        self.ser.write(wdata)
-        rdata = self.ser.read()
-        if not rdata:
-            raise TimeoutError("UDM did not respond to IDCODE; check the programmed bitstream, COM port, and baudrate")
-        rdata = struct.unpack('B', rdata)
-        
-        if (rdata[0] == self.__sync_byte):
-            print("Connection established, response: ", hex(rdata[0]))
-        else:
-            print("Connection failed, response: ", hex(rdata[0]))
-            raise Exception()
+        for attempt in range(3):
+            self.ser.reset_input_buffer()
+            self.ser.reset_output_buffer()
+            wdata = (struct.pack('B', self.__sync_byte))
+            wdata = wdata + (struct.pack('B', self.__idcode_cmd))
+            self.ser.write(wdata)
+            rdata = self.ser.read(1)
+
+            if rdata:
+                response = struct.unpack('B', rdata)[0]
+                if response == self.__sync_byte:
+                    print("Connection established, response: ", hex(response))
+                    return
+                print("Connection failed, response: ", hex(response))
+
+            if attempt < 2:
+                time.sleep(0.1)
+
+        raise TimeoutError(
+            "UDM did not return IDCODE 0x55 after 3 attempts; "
+            "check the programmed bitstream, COM port, and baudrate"
+        )
     
     def cc(self, com_num, baudrate):
         """Description:
