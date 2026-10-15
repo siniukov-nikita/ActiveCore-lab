@@ -1,72 +1,103 @@
-/*
- * Combinational vectoring CORDIC atan2.
- *
- * Inputs and output use signed two's-complement integers. The output is a
- * signed Q3.29 angle in radians, matching variants/10-atan2_cordic.py.
- */
-module atan2_cordic (
-    input  wire signed [31:0] y_i,
-    input  wire signed [31:0] x_i,
-    output wire signed [31:0] angle_o
+`timescale 1ns / 1ps
+
+module atan2_cordic_comb (
+    input  logic signed [31:0] y_bi,
+    input  logic signed [31:0] x_bi,
+    output logic signed [31:0] angle_bo
 );
 
-    localparam signed [63:0] PI = 64'sd1686629713;
-    localparam signed [63:0] TWO_PI = 64'sd3373259426;
-    localparam signed [63:0] ATAN_TABLE [0:31] = '{
-        64'sd421657428, 64'sd248918915, 64'sd131521918, 64'sd66762579,
-        64'sd33510843, 64'sd16771758, 64'sd8387925, 64'sd4194219,
-        64'sd2097141, 64'sd1048575, 64'sd524288, 64'sd262144,
-        64'sd131072, 64'sd65536, 64'sd32768, 64'sd16384,
-        64'sd8192, 64'sd4096, 64'sd2048, 64'sd1024,
-        64'sd512, 64'sd256, 64'sd128, 64'sd64,
-        64'sd32, 64'sd16, 64'sd8, 64'sd4,
-        64'sd2, 64'sd1, 64'sd0, 64'sd0
-    };
+    // ============================================================
+    // Константы алгоритма CORDIC (формат Q3.29, 29 дробных бит)
+    // ============================================================
+    localparam int ITERATIONS = 32;
+    localparam logic signed [63:0] PI     = 64'sh000000006487ed51; // round(pi * 2^29)
+    localparam logic signed [63:0] TWO_PI = 64'sh00000000c90fdaa2; // round(2*pi * 2^29)
 
-    reg signed [63:0] x_work;
-    reg signed [63:0] y_work;
-    reg signed [63:0] angle;
-    reg signed [63:0] x_old;
-    reg signed [63:0] y_old;
-    integer i;
+    // Таблица atan(2^-i) в формате Q3.29
+    logic signed [63:0] ATAN_TABLE [0:ITERATIONS-1];
+    initial begin
+        ATAN_TABLE[0]  = 64'sh1921fb54;
+        ATAN_TABLE[1]  = 64'sh0ed63383;
+        ATAN_TABLE[2]  = 64'sh07d6dd7e;
+        ATAN_TABLE[3]  = 64'sh03fab753;
+        ATAN_TABLE[4]  = 64'sh01ff55bb;
+        ATAN_TABLE[5]  = 64'sh00ffeaae;
+        ATAN_TABLE[6]  = 64'sh007ffd55;
+        ATAN_TABLE[7]  = 64'sh003fffab;
+        ATAN_TABLE[8]  = 64'sh001ffff5;
+        ATAN_TABLE[9]  = 64'sh000fffff;
+        ATAN_TABLE[10] = 64'sh00080000;
+        ATAN_TABLE[11] = 64'sh00040000;
+        ATAN_TABLE[12] = 64'sh00020000;
+        ATAN_TABLE[13] = 64'sh00010000;
+        ATAN_TABLE[14] = 64'sh00008000;
+        ATAN_TABLE[15] = 64'sh00004000;
+        ATAN_TABLE[16] = 64'sh00002000;
+        ATAN_TABLE[17] = 64'sh00001000;
+        ATAN_TABLE[18] = 64'sh00000800;
+        ATAN_TABLE[19] = 64'sh00000400;
+        ATAN_TABLE[20] = 64'sh00000200;
+        ATAN_TABLE[21] = 64'sh00000100;
+        ATAN_TABLE[22] = 64'sh00000080;
+        ATAN_TABLE[23] = 64'sh00000040;
+        ATAN_TABLE[24] = 64'sh00000020;
+        ATAN_TABLE[25] = 64'sh00000010;
+        ATAN_TABLE[26] = 64'sh00000008;
+        ATAN_TABLE[27] = 64'sh00000004;
+        ATAN_TABLE[28] = 64'sh00000002;
+        ATAN_TABLE[29] = 64'sh00000001;
+        ATAN_TABLE[30] = 64'sh00000000;
+        ATAN_TABLE[31] = 64'sh00000000;
+    end
 
-    always @* begin
-        x_work = {{32{ x_i[31]}}, x_i};
-        y_work = {{32{ y_i[31]}}, y_i};
-        angle = 64'sd0;
+    // ============================================================
+    // Комбинационная логика вычисления CORDIC
+    // ============================================================
+    always_comb begin
+        logic signed [63:0] x, y;
+        logic signed [63:0] x_old, y_old;
+        logic signed [63:0] angle;
 
-        if ((x_i == 0) && (y_i == 0)) begin
-            angle = 64'sd0;
-        end
-        else begin
-            if (x_work < 0) begin
-                x_work = -x_work;
-                y_work = -y_work;
+        // Обработка точки (0, 0)
+        if (x_bi == 32'sd0 && y_bi == 32'sd0) begin
+            angle_bo = 32'sd0;
+        end else begin
+            // Приведение в правую полуплоскость (x >= 0)
+            if (x_bi < 32'sd0) begin
+                x = -{{32{x_bi[31]}}, x_bi};
+                y = -{{32{y_bi[31]}}, y_bi};
                 angle = PI;
+            end else begin
+                x = {{32{x_bi[31]}}, x_bi};
+                y = {{32{y_bi[31]}}, y_bi};
+                angle = 64'sd0;
             end
 
-            for (i = 0; i < 32; i = i + 1) begin
-                x_old = x_work;
-                y_old = y_work;
-                if (y_work > 0) begin
-                    x_work = x_old + (y_old >>> i);
-                    y_work = y_old - (x_old >>> i);
+            // 32 комбинационные итерации (разворачиваются синтезатором в цепочку)
+            for (int i = 0; i < ITERATIONS; i++) begin
+                x_old = x;
+                y_old = y;
+
+                if (y > 64'sd0) begin
+                    x = x_old + (y_old >>> i);
+                    y = y_old - (x_old >>> i);
                     angle = angle + ATAN_TABLE[i];
-                end
-                else begin
-                    x_work = x_old - (y_old >>> i);
-                    y_work = y_old + (x_old >>> i);
+                end else begin
+                    x = x_old - (y_old >>> i);
+                    y = y_old + (x_old >>> i);
                     angle = angle - ATAN_TABLE[i];
                 end
             end
 
-            if (angle > PI)
+            // Нормализация диапазона к [-PI, PI]
+            if (angle > PI) begin
                 angle = angle - TWO_PI;
-            else if (angle < -PI)
+            end else if (angle < -PI) begin
                 angle = angle + TWO_PI;
+            end
+
+            angle_bo = angle[31:0];
         end
     end
-
-    assign angle_o = angle[31:0];
 
 endmodule
