@@ -44,7 +44,7 @@ class udm:
             baudrate (int): baudrate
 
         """
-        self.ser = serial.Serial(com_num, baudrate, 8)   
+        self.ser = serial.Serial(com_num, baudrate, 8, timeout=2)
     
     def con(self, com_num, baudrate):
         """Description:
@@ -104,11 +104,14 @@ class udm:
             Check UDM response
 
         """
-        self.ser.flush()
+        self.ser.reset_input_buffer()
+        self.ser.reset_output_buffer()
         wdata = (struct.pack('B', self.__sync_byte))
         wdata = wdata + (struct.pack('B', self.__idcode_cmd))
         self.ser.write(wdata)
         rdata = self.ser.read()
+        if not rdata:
+            raise TimeoutError("UDM did not respond to IDCODE; check the programmed bitstream, COM port, and baudrate")
         rdata = struct.unpack('B', rdata)
         
         if (rdata[0] == self.__sync_byte):
