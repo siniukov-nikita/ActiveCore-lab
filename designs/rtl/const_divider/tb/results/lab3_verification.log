@@ -1,0 +1,30 @@
+$ python3 --version
+Python 3.9.6
+$ verilator --version
+Verilator 5.052 2026-09-05 rev vUNKNOWN-built20260905
+$ python3 -m unittest variants/test_3_const_divider.py variants/test_lab3_host.py
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.226s
+
+OK
+$ python3 variants/check_lab3.py --integration --vcd designs/rtl/const_divider/tb/results/lab3_directed.vcd
+warning: Some design elements have no explicit time unit and/or
+       : time precision. This may cause confusing timing results.
+       : Affected design elements are:
+       :   -- module const_divider declared here: /Users/siniukov/Documents/ChatGPT/Языки описания аппаратуры и архитектуры/activecore/designs/rtl/const_divider/const_divider.v:8
+const_divider_tb: PASS (65536 values)
+/Users/siniukov/Documents/ChatGPT/Языки описания аппаратуры и архитектуры/activecore/designs/rtl/const_divider/tb/const_divider_tb.sv:32: $finish called at 65536000 (1ps)
+VCD info: dumpfile directed.vcd opened for output.
+const_divider_multicycle_tb: PASS (65536 values, latency=13, II=14, reset/handshake)
+/Users/siniukov/Documents/ChatGPT/Языки описания аппаратуры и архитектуры/activecore/designs/rtl/const_divider/tb/const_divider_multicycle_tb.sv:138: $finish called at 10490006000 (1ps)
+tb: PASS (UART/UDM, 25 divisions, reset, baseline peripherals, multicycle=1)
+- /Users/siniukov/Documents/ChatGPT/Языки описания аппаратуры и архитектуры/activecore/designs/rtl/udm/tb/tb.sv:197: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.052 2026-09-05
+- Verilator: $finish at 49ms; walltime 1.928 s; speed 25.450 ms/s
+- Verilator: cpu 1.927 s on 1 threads; allocated 3 MB
+tb: PASS (UART/UDM, 25 divisions, reset, baseline peripherals, multicycle=0)
+- /Users/siniukov/Documents/ChatGPT/Языки описания аппаратуры и архитектуры/activecore/designs/rtl/udm/tb/tb.sv:197: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.052 2026-09-05
+- Verilator: $finish at 26ms; walltime 1.068 s; speed 23.943 ms/s
+- Verilator: cpu 1.043 s on 1 threads; allocated 2 MB

@@ -22,7 +22,7 @@ endinterface
 
 
 module NEXYS4_DDR
-#( parameter SIM = "NO" )
+#( parameter SIM = "NO", parameter DIVIDER_MULTICYCLE = 1 )
 (
 	input 	CLK100MHZ
     , input   CPU_RESETN
@@ -91,6 +91,8 @@ localparam CSR_SW_ADDR          = 32'h00000004;
 localparam DIVIDER_ARG_ADDR     = 32'h00000010;
 localparam DIVIDER_QUOT_ADDR    = 32'h00000014;
 localparam DIVIDER_REM_ADDR     = 32'h00000018;
+localparam DIVIDER_CTRL_ADDR    = 32'h0000001c;
+localparam DIVIDER_STATUS_ADDR  = 32'h00000020;
 localparam TESTMEM_ADDR         = 32'h80000000;
 
 localparam TESTMEM_WSIZE_POW    = 10;
@@ -136,12 +138,34 @@ logic [31:0] udm_csr_rdata;
 logic [15:0] divider_arg;
 wire [31:0] divider_quotient;
 wire [31:0] divider_remainder;
+wire divider_busy;
+wire divider_done;
+wire divider_start = udm_bus.req && udm_bus.ack && udm_bus.we
+    && (udm_bus.addr == DIVIDER_CTRL_ADDR) && udm_bus.wdata[0];
+wire divider_reset = srst || udm_reset;
 
-const_divider divider (
-    .dividend_i(divider_arg),
-    .quotient_o(divider_quotient),
-    .remainder_o(divider_remainder)
-);
+generate
+    if (DIVIDER_MULTICYCLE) begin : gen_multicycle
+        const_divider_multicycle divider (
+            .clk_i(clk_gen),
+            .rst_i(divider_reset),
+            .start_i(divider_start),
+            .dividend_i(divider_arg),
+            .busy_o(divider_busy),
+            .done_o(divider_done),
+            .quotient_o(divider_quotient),
+            .remainder_o(divider_remainder)
+        );
+    end else begin : gen_combinational
+        const_divider divider (
+            .dividend_i(divider_arg),
+            .quotient_o(divider_quotient),
+            .remainder_o(divider_remainder)
+        );
+        assign divider_busy = 1'b0;
+        assign divider_done = 1'b1;
+    end
+endgenerate
 
 // bus request
 always @(posedge clk_gen)
@@ -149,7 +173,7 @@ always @(posedge clk_gen)
     udm_csr_resp <= 1'b0;
     udm_testmem_resp <= 1'b0;
     
-    if (srst)
+    if (divider_reset)
         begin
         LED <= 16'hffff;
         divider_arg <= 16'd0;
@@ -194,6 +218,16 @@ always @(posedge clk_gen)
                     begin
                     udm_csr_resp <= 1'b1;
                     udm_csr_rdata <= divider_remainder;
+                    end
+                if (udm_bus.addr == DIVIDER_CTRL_ADDR)
+                    begin
+                    udm_csr_resp <= 1'b1;
+                    udm_csr_rdata <= 32'd0; // START is a write strobe
+                    end
+                if (udm_bus.addr == DIVIDER_STATUS_ADDR)
+                    begin
+                    udm_csr_resp <= 1'b1;
+                    udm_csr_rdata <= {30'd0, divider_done, divider_busy};
                     end
                 udm_testmem_resp <= udm_testmem_enb;
                 end
