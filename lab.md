@@ -915,7 +915,8 @@ XC7A100T: 63 400 LUT, 126 800 FF, 135 BRAM36.
 [AMD UG474, табл. 1](https://docs.amd.com/r/en-US/ug474_7Series_CLB/7-Series-FPGA-CLB-Resources),
 [AMD DS180, табл. 4](https://docs.amd.com/api/khub/documents/2LByHkO~nSZXcei2D55fTg/content).
 Критический путь ЛР4 по nextpnr имеет задержку 5,13 нс при бюджете 10 нс.
-WNS/TNS в формате Vivado нужно снять отдельным запуском Vivado.
+В Vivado после трассировки конвейера получены WNS +3,461 нс и TNS 0,000 нс.
+Таблица ресурсов и снимки приведены в [отчёте ЛР4](docs/lab4-report.md).
 
 Полученный `.bit` находится по адресу
 `designs/rtl/udm/syn/NEXYS4_DDR/openxc7/build/pipeline/NEXYS4_DDR.bit`.
@@ -946,4 +947,4 @@ python designs\rtl\udm\sw\divider_test.py --port COM3 --mode pipeline --baudrate
 `(1, 0)` и `(3855, 0)`. Тест печатает `PASS` для совпавших результатов.
 26.11.2026 bitstream openXC7 загружен в SRAM Nexys A7-100T. Натурный тест
 на macOS при 115200 бод прошёл 40 из 40 проверок. Результаты и журнал
-приведены в [отчёте ЛР4](docs/lab4-report.md). Vivado и XSim локально не запускались.
+приведены в [отчёте ЛР4](docs/lab4-report.md) вместе с метриками сборки Vivado на Windows.
