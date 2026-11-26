@@ -24,7 +24,7 @@ class FakeLink:
     def rd32(self, address):
         if address == HOST.DIVIDER_STATUS_ADDR:
             status = next(self.statuses)
-            self.ready = status == HOST.DONE
+            self.ready = status & (HOST.DONE | HOST.BUSY) == HOST.DONE
             return status
         if not self.ready:
             raise AssertionError("Host read a result before completion")
@@ -64,6 +64,17 @@ class DividerHostTest(unittest.TestCase):
         link.ready = True
         self.assertEqual(HOST.run_division(link, 35, mode="comb"), (2, 1))
         self.assertEqual(link.writes, [(HOST.DIVIDER_ARG_ADDR, 35)])
+
+    def test_pipeline_mode_checks_identity_and_waits_for_done(self):
+        mode = HOST.PIPELINE
+        link = FakeLink([mode, mode | HOST.BUSY, mode | HOST.DONE])
+        self.assertEqual(HOST.run_division(link, 35, mode="pipeline"), (2, 1))
+        self.assertEqual(link.writes, [(HOST.DIVIDER_ARG_ADDR, 35), (HOST.DIVIDER_CTRL_ADDR, 1)])
+
+        multicycle = FakeLink([HOST.DONE])
+        with self.assertRaisesRegex(RuntimeError, "Lab 4 bitstream required"):
+            HOST.run_division(multicycle, 35, mode="pipeline")
+        self.assertEqual(multicycle.writes, [])
 
 
 if __name__ == "__main__":

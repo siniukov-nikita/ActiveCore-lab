@@ -1,5 +1,6 @@
 # vivado -mode batch -source build_windows.tcl -tclargs multicycle
 # Use "comb" instead of "multicycle" to build lab 2 for comparison.
+# Use "pipeline" to build lab 4.
 # In the Tcl console: set lab_divider_mode multicycle; source <path>/build_windows.tcl
 
 set script_dir [file dirname [file normalize [info script]]]
@@ -10,8 +11,8 @@ if {![info exists lab_divider_mode]} {
         set lab_divider_mode [lindex $argv 0]
     }
 }
-if {$lab_divider_mode ni {comb multicycle}} {
-    error "Expected divider mode: comb or multicycle"
+if {$lab_divider_mode ni {comb multicycle pipeline}} {
+    error "Expected divider mode: comb, multicycle or pipeline"
 }
 if {[current_project -quiet] eq ""} {
     open_project $project_file
@@ -20,7 +21,8 @@ if {[current_project -quiet] eq ""} {
 }
 set_property part xc7a100tcsg324-1 [current_project]
 set_property target_language Verilog [current_project]
-set_property generic [list DIVIDER_MULTICYCLE=[expr {$lab_divider_mode eq "multicycle"}]] [get_filesets sources_1]
+set_property generic [list DIVIDER_MULTICYCLE=[expr {$lab_divider_mode eq "multicycle"}] \
+    DIVIDER_PIPELINE=[expr {$lab_divider_mode eq "pipeline"}]] [get_filesets sources_1]
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
 

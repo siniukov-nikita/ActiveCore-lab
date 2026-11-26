@@ -4,16 +4,22 @@
 // SIM="NO" keeps both UARTs active; no hierarchical signal injection is used.
 module tb;
     parameter DIVIDER_MULTICYCLE = 1;
-    localparam integer BIT_PERIOD = 1000;
+    parameter DIVIDER_PIPELINE = 0;
+    localparam NEEDS_START = DIVIDER_MULTICYCLE || DIVIDER_PIPELINE;
+    localparam [31:0] IMPLEMENTATION = DIVIDER_PIPELINE ? 32'd4 : 32'd0;
+    localparam integer BIT_PERIOD = DIVIDER_PIPELINE ? 8680 : 1000;
     reg clk = 0;
     always #5 clk = ~clk;
-    reg reset_n = 0;
+    // In Lab 4, verify that power-up works without a button reset.
+    reg reset_n = DIVIDER_PIPELINE != 0;
     reg rx = 1;
     wire tx;
     reg [15:0] switches = 16'h0030;
     wire [15:0] led;
 
-    NEXYS4_DDR #(.DIVIDER_MULTICYCLE(DIVIDER_MULTICYCLE)) DUT (
+    NEXYS4_DDR #(
+        .DIVIDER_MULTICYCLE(DIVIDER_MULTICYCLE), .DIVIDER_PIPELINE(DIVIDER_PIPELINE)
+    ) DUT (
         .CLK100MHZ(clk), .CPU_RESETN(reset_n), .SW(switches), .LED(led),
         .UART_TXD_IN(rx), .UART_RXD_OUT(tx)
     );
@@ -57,7 +63,7 @@ module tb;
     task get_byte(output reg [7:0] data);
         integer clocks;
         clocks = 0;
-        while (consumed_count == received_count && clocks < 10000) begin
+        while (consumed_count == received_count && clocks < 4*BIT_PERIOD) begin
             @(posedge clk);
             #1;
             clocks = clocks + 1;
@@ -122,7 +128,7 @@ module tb;
         integer polls;
         wr32(ARG, {16'hdead, x}); // Upper argument bits must be ignored.
         rd32_expect(ARG, {16'd0, x});
-        if (DIVIDER_MULTICYCLE) begin
+        if (NEEDS_START) begin
             rd32_expect(QUOT, last_q); // Writing ARG alone must not start work.
             rd32_expect(REM, last_r);
             wr32(CTRL, 0);
@@ -130,17 +136,17 @@ module tb;
             wr32(CTRL, 1);
             status = 0;
             polls = 0;
-            while (status != 2 && polls < 8) begin
+            while (status != (IMPLEMENTATION | 32'd2) && polls < 8) begin
                 rd32(STATUS, status);
                 polls = polls + 1;
             end
-            if (status !== 32'd2) $fatal(1, "Divider DONE timeout");
+            if (status !== (IMPLEMENTATION | 32'd2)) $fatal(1, "Divider DONE timeout or wrong mode");
         end
         last_q = {16'd0, x} / 17;
         last_r = {16'd0, x} % 17;
         rd32_expect(QUOT, last_q);
         rd32_expect(REM, last_r);
-        rd32_expect(STATUS, 2);
+        rd32_expect(STATUS, IMPLEMENTATION | 32'd2);
         rd32_expect(CTRL, 0);
     endtask
 
@@ -154,7 +160,7 @@ module tb;
         send_byte(8'h00);
         get_byte(response);
         if (response !== 8'h55) $fatal(1, "UDM IDCODE mismatch");
-        rd32_expect(STATUS, DIVIDER_MULTICYCLE ? 0 : 2);
+        rd32_expect(STATUS, IMPLEMENTATION | (NEEDS_START ? 32'd0 : 32'd2));
         rd32_expect(QUOT, 0);
         rd32_expect(REM, 0);
 
@@ -188,17 +194,17 @@ module tb;
         rd32_expect(ARG, 0);
         rd32_expect(QUOT, 0);
         rd32_expect(REM, 0);
-        rd32_expect(STATUS, DIVIDER_MULTICYCLE ? 0 : 2);
+        rd32_expect(STATUS, IMPLEMENTATION | (NEEDS_START ? 32'd0 : 32'd2));
         last_q = 0;
         last_r = 0;
         run_division(35);
-        $display("tb: PASS (UART/UDM, 25 divisions, reset, baseline peripherals, multicycle=%0d)",
-            DIVIDER_MULTICYCLE);
+        $display("tb: PASS (UART/UDM, 25 divisions, reset, baseline peripherals, multicycle=%0d, pipeline=%0d)",
+            DIVIDER_MULTICYCLE, DIVIDER_PIPELINE);
         $finish;
     end
 
     initial begin
-        #100000000;
+        #600000000;
         $fatal(1, "Integration test timeout");
     end
 endmodule

@@ -16,6 +16,7 @@ DIVIDER_CTRL_ADDR = 0x0000001C
 DIVIDER_STATUS_ADDR = 0x00000020
 BUSY = 1
 DONE = 2
+PIPELINE = 4
 BAUDRATE = 921600
 
 
@@ -36,10 +37,15 @@ def find_port(explicit_port):
 
 def run_division(link, value, mode="multicycle", timeout=1.0):
     """Run one operation; UART exchange time is not accelerator latency."""
-    if mode == "multicycle" and link.rd32(DIVIDER_STATUS_ADDR) & BUSY:
-        raise RuntimeError("Accelerator is busy before START")
+    uses_start = mode in ("multicycle", "pipeline")
+    if uses_start:
+        status = link.rd32(DIVIDER_STATUS_ADDR)
+        if mode == "pipeline" and not status & PIPELINE:
+            raise RuntimeError("Lab 4 bitstream required: STATUS has no PIPELINE flag")
+        if status & BUSY:
+            raise RuntimeError("Accelerator is busy before START")
     link.wr32(DIVIDER_ARG_ADDR, value)
-    if mode == "multicycle":
+    if uses_start:
         link.wr32(DIVIDER_CTRL_ADDR, 1)
         deadline = time.monotonic() + timeout
         while True:
@@ -54,8 +60,10 @@ def run_division(link, value, mode="multicycle", timeout=1.0):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", help="Windows COM port, for example COM5")
-    parser.add_argument("--mode", choices=("multicycle", "comb"), default="multicycle",
+    parser.add_argument("--mode", choices=("multicycle", "comb", "pipeline"), default="multicycle",
                         help="Match the programmed bitstream (default: lab 3 multicycle)")
+    parser.add_argument("--baudrate", type=int, default=BAUDRATE,
+                        help="UART baud rate (default: %(default)d)")
     parser.add_argument("--timeout", type=float, default=1.0,
                         help="DONE polling timeout in seconds; serial reads have their own timeout")
     parser.add_argument("--random-count", type=int, default=0,
@@ -70,6 +78,8 @@ def main():
     args = parser.parse_args()
     if not 0 < args.timeout < float("inf"):
         parser.error("timeout must be positive and finite")
+    if args.baudrate <= 0:
+        parser.error("baudrate must be positive")
     if args.random_count < 0:
         parser.error("random-count must not be negative")
     rng = random.Random(17)
@@ -82,7 +92,7 @@ def main():
     port = find_port(args.port)
     from udm import udm
 
-    link = udm(port, BAUDRATE)
+    link = udm(port, args.baudrate)
     try:
         for value in args.values:
             result0, result1 = run_division(link, value, args.mode, args.timeout)
