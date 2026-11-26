@@ -1,0 +1,44 @@
+Connecting COM port...
+COM port connected
+Connection established, response:  0x55
+x=    0 quotient=    0 remainder= 0 expected=(0, 0) PASS
+x=    1 quotient=    0 remainder= 1 expected=(0, 1) PASS
+x=   16 quotient=    0 remainder=16 expected=(0, 16) PASS
+x=   17 quotient=    1 remainder= 0 expected=(1, 0) PASS
+x=   18 quotient=    1 remainder= 1 expected=(1, 1) PASS
+x=   34 quotient=    2 remainder= 0 expected=(2, 0) PASS
+x=65534 quotient= 3854 remainder=16 expected=(3854, 16) PASS
+x=65535 quotient= 3855 remainder= 0 expected=(3855, 0) PASS
+x=54285 quotient= 3193 remainder= 4 expected=(3193, 4) PASS
+x=39770 quotient= 2339 remainder= 7 expected=(2339, 7) PASS
+x=47923 quotient= 2819 remainder= 0 expected=(2819, 0) PASS
+x=37961 quotient= 2233 remainder= 0 expected=(2233, 0) PASS
+x=22896 quotient= 1346 remainder=14 expected=(1346, 14) PASS
+x=36474 quotient= 2145 remainder= 9 expected=(2145, 9) PASS
+x=14439 quotient=  849 remainder= 6 expected=(849, 6) PASS
+x= 3530 quotient=  207 remainder=11 expected=(207, 11) PASS
+x=32624 quotient= 1919 remainder= 1 expected=(1919, 1) PASS
+x=50354 quotient= 2962 remainder= 0 expected=(2962, 0) PASS
+x=54993 quotient= 3234 remainder=15 expected=(3234, 15) PASS
+x=33080 quotient= 1945 remainder=15 expected=(1945, 15) PASS
+x=41606 quotient= 2447 remainder= 7 expected=(2447, 7) PASS
+x=52637 quotient= 3096 remainder= 5 expected=(3096, 5) PASS
+x=18027 quotient= 1060 remainder= 7 expected=(1060, 7) PASS
+x= 8151 quotient=  479 remainder= 8 expected=(479, 8) PASS
+x=18334 quotient= 1078 remainder= 8 expected=(1078, 8) PASS
+x=25764 quotient= 1515 remainder= 9 expected=(1515, 9) PASS
+x=19780 quotient= 1163 remainder= 9 expected=(1163, 9) PASS
+x=27526 quotient= 1619 remainder= 3 expected=(1619, 3) PASS
+x=43389 quotient= 2552 remainder= 5 expected=(2552, 5) PASS
+x=16187 quotient=  952 remainder= 3 expected=(952, 3) PASS
+x= 9067 quotient=  533 remainder= 6 expected=(533, 6) PASS
+x=40527 quotient= 2383 remainder=16 expected=(2383, 16) PASS
+x=53696 quotient= 3158 remainder=10 expected=(3158, 10) PASS
+x=10730 quotient=  631 remainder= 3 expected=(631, 3) PASS
+x=62141 quotient= 3655 remainder= 6 expected=(3655, 6) PASS
+x=18560 quotient= 1091 remainder=13 expected=(1091, 13) PASS
+x=53565 quotient= 3150 remainder=15 expected=(3150, 15) PASS
+x=44090 quotient= 2593 remainder= 9 expected=(2593, 9) PASS
+x= 2337 quotient=  137 remainder= 8 expected=(137, 8) PASS
+x=56725 quotient= 3336 remainder=13 expected=(3336, 13) PASS
+Connection dropped
