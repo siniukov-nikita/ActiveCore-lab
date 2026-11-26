@@ -1,0 +1,10 @@
+$ python3 -B -m unittest variants/test_3_const_divider.py
+.
+----------------------------------------------------------------------
+Ran 1 test in 0.229s
+
+OK
+$ iverilog -g2012 -s const_divider_tb -o <tmp>/divider-test designs/rtl/const_divider/const_divider.v designs/rtl/const_divider/tb/const_divider_tb.sv
+$ vvp <tmp>/divider-test
+const_divider_tb: PASS (65536 values)
+designs/rtl/const_divider/tb/const_divider_tb.sv:32: $finish called at 65536000 (1ps)
