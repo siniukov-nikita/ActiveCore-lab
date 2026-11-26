@@ -1,0 +1,21 @@
+openXC7 multicycle build, ActiveCore-lab4 tree 06c7149
+Target xc7a100tcsg324-1. Top NEXYS4_DDR. DIVIDER_MULTICYCLE=1, DIVIDER_PIPELINE=0.
+Same multicycle divider core as lab3 7976c0f. Board wrapper from lab4 uses a direct 100 MHz clock and reset at power-up.
+Source artifacts:
+  netlist.json: SHA-256 b2ad2af53db572ab6b4cee55971e39b2e6b8d09b7cad0fd11a5ac87084288e13
+  timing.json: SHA-256 28f350d1fb4d8afe313749c5660374288a4e5e2dece86c06ddc3495bdd61284f
+  place_route.log: SHA-256 602e3530c81c852910ae8ea595492192bc003bfa1fffffb49189f8a9c5c5dc57
+
+Info: Max frequency for clock 'clk_gen': 182.98 MHz (PASS at 100.00 MHz)
+timing.json fmax.clk_gen: {'achieved': 182.98260498046875, 'constraint': 100}
+
+Synthesized primitives in NEXYS4_DDR:
+  FDPE: 4
+  FDRE: 445
+  FDSE: 19
+  LUT2: 171
+  LUT3: 106
+  LUT4: 129
+  LUT5: 95
+  LUT6: 145
+  RAMB36E1: 1
